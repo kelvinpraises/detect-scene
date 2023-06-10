@@ -80,7 +80,7 @@ const useCanvas = () => {
       console.log(difference);
       console.log(average);
 
-      if (average > 60) {
+      if (average > 2) {
         similar = false;
       } else {
         similar = true;
@@ -147,7 +147,7 @@ const useCanvas = () => {
 
       const similarity = _compareColorSimilariy(accumulatedColors);
 
-      console.log("Scene just changed? ", similarity.similar);
+      console.log("Scene just changed? ", !similarity.similar);
 
       // // append new cell to sliced.
       // sliced.appendChild(clone);
@@ -163,6 +163,8 @@ const useCanvas = () => {
 
   const captureScene = useCallback(async () => {
     const video: HTMLVideoElement = videoRef.current;
+    const scene: HTMLDivElement = sceneRef.current;
+
     try {
       const { canvas, context, w, h } = _setUpCanvas(video);
 
@@ -203,9 +205,12 @@ const useCanvas = () => {
 
       const similarity = _compareColorSimilariy(accumulatedColors);
 
-      console.log("Scene just changed? ", similarity.similar);
+      console.log("Scene just changed? ", !similarity.similar);
 
-      if (similarity.similar) {
+      if (!similarity.similar) {
+        const img = new Image();
+        img.src = clone.toDataURL();
+        scene.appendChild(img);
       }
 
       context.clearRect(0, 0, w, h);
@@ -216,7 +221,7 @@ const useCanvas = () => {
 
   const [killPoll, respawnPoll] = usePollingEffect(
     async () => await captureScene(),
-    [],
+    [colors],
     {
       interval: 1000,
       onCleanUp: () => {},
