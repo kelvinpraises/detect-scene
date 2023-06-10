@@ -1,15 +1,20 @@
-import { useRef, useCallback, useState } from 'react';
-import { Colour } from '../utils/colors';
+import { useRef, useCallback, useState } from "react";
+import { Colour } from "../utils/colors";
+import usePollingEffect from "../utils/usePolling";
 
 const useCanvas = () => {
   const ref = useRef<HTMLCanvasElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>();
+  const slicedRef = useRef<HTMLDivElement | null>();
+  const sceneRef = useRef<HTMLDivElement | null>();
+
   const [colors, setColors] = useState<{ r: number; g: number; b: number }[]>(
     []
   );
 
   const _setUpCanvas = (video: HTMLVideoElement) => {
     let canvas = ref.current;
-    const context = canvas.getContext('2d');
+    const context = canvas.getContext("2d");
 
     const w = video.videoWidth;
     const h = video.videoHeight;
@@ -87,77 +92,146 @@ const useCanvas = () => {
     return { similar };
   };
 
-  const captureVideo = useCallback(
-    async (video: HTMLVideoElement, sliced: HTMLDivElement) => {
-      try {
-        const { canvas, context, w, h } = _setUpCanvas(video);
+  const captureVideo = useCallback(async () => {
+    const video: HTMLVideoElement = videoRef.current;
+    const sliced: HTMLDivElement = slicedRef.current;
+    try {
+      const { canvas, context, w, h } = _setUpCanvas(video);
 
-        // clone full image on canvas.
-        const clone = canvas.cloneNode(true) as HTMLCanvasElement;
-        clone.getContext('2d').drawImage(canvas, 0, 0);
+      // clone full image on canvas.
+      const clone = canvas.cloneNode(true) as HTMLCanvasElement;
+      clone.getContext("2d").drawImage(canvas, 0, 0);
 
-        const col = 8;
-        const row = 4;
-        const colWidth = canvas.width / col;
-        const rowHeight = canvas.height / row;
-        const accumulatedColors: { r: number; g: number; b: number }[] = [];
+      const col = 8;
+      const row = 4;
+      const colWidth = canvas.width / col;
+      const rowHeight = canvas.height / row;
+      const accumulatedColors: { r: number; g: number; b: number }[] = [];
 
-        while (sliced.firstChild) {
-          sliced.removeChild(sliced.lastChild);
-        }
-
-        // sub divide image.
-        for (var i = 0; i < row; i++) {
-          for (var j = 0; j < col; j++) {
-            canvas.width = colWidth;
-            canvas.height = rowHeight;
-
-            context.clearRect(0, 0, colWidth, rowHeight);
-            context.drawImage(
-              clone,
-              j * colWidth,
-              i * rowHeight,
-              colWidth,
-              rowHeight,
-              0,
-              0,
-              colWidth,
-              rowHeight
-            );
-
-            const { r, g, b } = _getAverageColor(context, colWidth, rowHeight);
-
-            accumulatedColors.push({ r, g, b });
-
-            sliced.style.width = w + 'px';
-
-            let cell = document.createElement('div');
-            cell.style.width = colWidth + 'px';
-            cell.style.height = rowHeight + 'px';
-            cell.style.backgroundColor = `rgb(${r},${g},${b})`;
-            sliced.appendChild(cell);
-          }
-        }
-
-        const similarity = _compareColorSimilariy(accumulatedColors);
-
-        console.log('Scene just changed? ', similarity.similar);
-
-        // // append new cell to sliced.
-        // sliced.appendChild(clone);
-
-        // console.log(JSON.stringify(colors, null, 2));
-
-        // clean the canvas.
-        context.clearRect(0, 0, w, h);
-      } catch (e) {
-        console.log(e);
+      while (sliced.firstChild) {
+        sliced.removeChild(sliced.lastChild);
       }
-    },
-    [ref, _compareColorSimilariy, _getAverageColor, _setUpCanvas]
+
+      // sub divide image.
+      for (var i = 0; i < row; i++) {
+        for (var j = 0; j < col; j++) {
+          canvas.width = colWidth;
+          canvas.height = rowHeight;
+
+          context.clearRect(0, 0, colWidth, rowHeight);
+          context.drawImage(
+            clone,
+            j * colWidth,
+            i * rowHeight,
+            colWidth,
+            rowHeight,
+            0,
+            0,
+            colWidth,
+            rowHeight
+          );
+
+          const { r, g, b } = _getAverageColor(context, colWidth, rowHeight);
+
+          accumulatedColors.push({ r, g, b });
+
+          sliced.style.width = w + "px";
+
+          let cell = document.createElement("div");
+          cell.style.width = colWidth + "px";
+          cell.style.height = rowHeight + "px";
+          cell.style.backgroundColor = `rgb(${r},${g},${b})`;
+          sliced.appendChild(cell);
+        }
+      }
+
+      const similarity = _compareColorSimilariy(accumulatedColors);
+
+      console.log("Scene just changed? ", similarity.similar);
+
+      // // append new cell to sliced.
+      // sliced.appendChild(clone);
+
+      // console.log(JSON.stringify(colors, null, 2));
+
+      // clean the canvas.
+      context.clearRect(0, 0, w, h);
+    } catch (e) {
+      console.log(e);
+    }
+  }, [ref, _compareColorSimilariy, _getAverageColor, _setUpCanvas]);
+
+  const captureScene = useCallback(async () => {
+    const video: HTMLVideoElement = videoRef.current;
+    try {
+      const { canvas, context, w, h } = _setUpCanvas(video);
+
+      // clone full image on canvas.
+      const clone = canvas.cloneNode(true) as HTMLCanvasElement;
+      clone.getContext("2d").drawImage(canvas, 0, 0);
+
+      const col = 8;
+      const row = 4;
+      const colWidth = canvas.width / col;
+      const rowHeight = canvas.height / row;
+      const accumulatedColors: { r: number; g: number; b: number }[] = [];
+
+      // sub divide image.
+      for (var i = 0; i < row; i++) {
+        for (var j = 0; j < col; j++) {
+          canvas.width = colWidth;
+          canvas.height = rowHeight;
+
+          context.clearRect(0, 0, colWidth, rowHeight);
+          context.drawImage(
+            clone,
+            j * colWidth,
+            i * rowHeight,
+            colWidth,
+            rowHeight,
+            0,
+            0,
+            colWidth,
+            rowHeight
+          );
+
+          const { r, g, b } = _getAverageColor(context, colWidth, rowHeight);
+
+          accumulatedColors.push({ r, g, b });
+        }
+      }
+
+      const similarity = _compareColorSimilariy(accumulatedColors);
+
+      console.log("Scene just changed? ", similarity.similar);
+
+      if (similarity.similar) {
+      }
+
+      context.clearRect(0, 0, w, h);
+    } catch (e) {
+      console.log(e);
+    }
+  }, [ref, _compareColorSimilariy, _getAverageColor, _setUpCanvas]);
+
+  const [killPoll, respawnPoll] = usePollingEffect(
+    async () => await captureScene(),
+    [],
+    {
+      interval: 1000,
+      onCleanUp: () => {},
+    }
   );
 
-  return { ref, captureVideo };
+  return {
+    ref,
+    captureVideo,
+    sceneRef,
+    videoRef,
+    slicedRef,
+    killPoll,
+    respawnPoll,
+  };
 };
 
 export default useCanvas;
