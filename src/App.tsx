@@ -29,6 +29,8 @@ export default function App() {
           ref={videoRef}
           controls
           preload="metadata"
+          width="560px"
+          height="315px"
         >
           <source
             src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4"
